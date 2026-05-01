@@ -116,20 +116,42 @@ SYSTEM_PROMPT = f"""你是一名专业的竞争情报（Competitive Intelligence
 def search_web(query: str) -> str:
     """搜索网络，获取竞争对手的公开信息。输入搜索词，返回多条搜索结果摘要。"""
     try:
-        try:
-            from ddgs import DDGS
-        except ImportError:
-            from duckduckgo_search import DDGS
-        results = list(DDGS().text(query, max_results=5))
+        tavily_api_key = os.environ.get("TAVILY_API_KEY")
+        if not tavily_api_key:
+            return "错误：未设置 TAVILY_API_KEY 环境变量。请在 Railway 中设置 API Key。"
+
+        from tavily import TavilyClient
+
+        client = TavilyClient(api_key=tavily_api_key)
+
+        # 使用 Tavily 搜索，包含搜索结果和网页内容
+        response = client.search(
+            query=query,
+            max_results=5,
+            include_answer=True,  # 包含 AI 生成的摘要
+            include_raw_content=True,  # 包含网页原文内容
+        )
+
+        results = response.get("results", [])
         if not results:
             return "未找到搜索结果，请换一个更具体的搜索词。"
+
         lines = []
         for r in results:
             title = r.get("title", "").strip()
-            body = r.get("body", "").strip()
-            href = r.get("href", "").strip()
-            lines.append(f"### {title}\n{body}\n来源: {href}")
+            content = r.get("content", "").strip()
+            url = r.get("url", "").strip()
+            lines.append(f"### {title}\n{content}\n来源: {url}")
+
+        # 如果 Tavily 提供了答案摘要，放在最前面
+        answer = response.get("answer", "")
+        if answer:
+            lines.insert(0, f"### 搜索摘要\n{answer}\n来源: Tavily AI")
+
         return "\n\n---\n\n".join(lines)
+
+    except ImportError:
+        return "错误：未安装 tavily 库。请检查 requirements.txt 是否包含 tavily-python。"
     except Exception as e:
         return f"搜索失败: {str(e)}"
 
