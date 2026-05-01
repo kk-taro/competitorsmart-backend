@@ -1,7 +1,8 @@
 """
 CompetitorSmart — FastAPI 后端
-功能：LangGraph ReAct Agent + DuckDuckGo联网搜索 + 网页抓取
+功能：LangGraph ReAct Agent + Tavily联网搜索 + 网页抓取
 部署：Railway
+注意：原使用DuckDuckGo，但因Railway服务器IP被限制，已改为Tavily API
 """
 
 import os
